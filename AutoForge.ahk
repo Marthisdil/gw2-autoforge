@@ -2,7 +2,7 @@
 ; Version: 3.1.0  (AutoHotkey v2 version)
 ; Date Updated: 2026-11-12
 ;
-; Requires AutoHotkey v2.0 or later. For AutoHotkey v1.1, use AutoForge v2.7.
+; Requires AutoHotkey v2.0 or later.
 ;
 ; Instructions:
 ; CTRL+ALT+Q - Save Mouse Pos 1 (Refill)
