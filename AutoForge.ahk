@@ -1,6 +1,6 @@
 ; AutoForge
-; Version: 3.0  (AutoHotkey v2 version)
-; Date Updated: 2026-11-03
+; Version: 3.0.1  (AutoHotkey v2 version)
+; Date Updated: 2026-11-12
 ;
 ; Requires AutoHotkey v2.0 or later. For AutoHotkey v1.1, use AutoForge v2.7.
 ;
@@ -20,8 +20,8 @@
 #MaxThreadsPerHotkey 2
 
 ; ---- Version info ----
-scriptVersion := "3.0"
-scriptDate := "2026-11-03"
+scriptVersion := "3.0.1"
+scriptDate := "2026-11-12"
 
 ; ---- Game window (instruction window is kept on top while this is active) ----
 gameExe := "Gw2-64.exe"
