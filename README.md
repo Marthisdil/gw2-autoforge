@@ -65,7 +65,6 @@ resize the game window, save both positions again.
 - **Game window:** AutoForge only clicks while Guild Wars 2 is the active window. When you switch back, it waits half a second before clicking again so the game can settle.
 - **Overlays:** It may not work properly with overlays such as Blish HUD.
 - **Hotkeys:** All hotkeys use Ctrl+Alt so they don't clash with common game keybinds.
-- **AutoHotkey v1.1:** This script needs AutoHotkey v2. For AutoHotkey v1.1, use AutoForge v2.7.
 - **Use at your own risk:** Check ArenaNet's rules on macros before you use any automation in the game.
 
 ## Changelog
