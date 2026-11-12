@@ -1,0 +1,5 @@
+# compiled builds (attach to GitHub Releases instead)
+*.exe
+# local logs and temp files
+*.log
+*.tmp
