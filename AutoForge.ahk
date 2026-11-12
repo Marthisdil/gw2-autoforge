@@ -1,5 +1,5 @@
 ; AutoForge
-; Version: 3.0.1  (AutoHotkey v2 version)
+; Version: 3.1.0  (AutoHotkey v2 version)
 ; Date Updated: 2026-11-12
 ;
 ; Requires AutoHotkey v2.0 or later. For AutoHotkey v1.1, use AutoForge v2.7.
@@ -8,11 +8,13 @@
 ; CTRL+ALT+Q - Save Mouse Pos 1 (Refill)
 ; CTRL+ALT+W - Save Mouse Pos 2 (Forge)
 ; CTRL+ALT+J - Start
+; CTRL+ALT+P - Pause/Resume
 ; CTRL+ALT+L - Stop/Exit
 ; Quantity box: enter how many to forge, then press Start. The script stops
 ;   after that many cycles. Leave it blank to run until you press Stop/Exit.
 ; Cycle order: Refill > Forge > wait > repeat
-; The script pauses automatically when the game window is not active, and resumes when it is.
+; Pause/Resume holds the run before the next click and keeps the cycle count.
+; The script also pauses automatically when the game window is not active, and resumes when it is.
 ; The window is kept on top of the game whenever the game window is active.
 ; Note: May not work properly if using Overlays such as Blish HUD.
 
@@ -20,7 +22,7 @@
 #MaxThreadsPerHotkey 2
 
 ; ---- Version info ----
-scriptVersion := "3.0.1"
+scriptVersion := "3.1.0"
 scriptDate := "2026-11-12"
 
 ; ---- Game window (instruction window is kept on top while this is active) ----
@@ -37,7 +39,9 @@ pos2Y := ""
 cycleCount := 0
 targetQty := 0
 running := false
+userPaused := false
 runStatus := "Status: Running"
+pausedStatus := "Status: Paused (CTRL+ALT+P to resume)"
 
 ; ---- Instruction window (always on top, top of screen) ----
 guiWidth := 360
@@ -48,7 +52,7 @@ cycleText := myGui.Add("Text", "w" guiWidth, "Cycles completed: 0")
 statusText := myGui.Add("Text", "w" guiWidth " y+2", "Status: Idle")
 myGui.Add("Text", "xm y+8 Section", "Quantity (blank = until stopped):")
 qtyEdit := myGui.Add("Edit", "x+8 yp-3 w60 Number Limit6")
-myGui.Add("Text", "xm w" guiWidth " y+8", "CTRL+ALT+Q - Save Mouse Pos 1 (Refill)`nCTRL+ALT+W - Save Mouse Pos 2 (Forge)`nCTRL+ALT+J - Start`nCTRL+ALT+L - Stop/Exit")
+myGui.Add("Text", "xm w" guiWidth " y+8", "CTRL+ALT+Q - Save Mouse Pos 1 (Refill)`nCTRL+ALT+W - Save Mouse Pos 2 (Forge)`nCTRL+ALT+J - Start`nCTRL+ALT+P - Pause/Resume`nCTRL+ALT+L - Stop/Exit")
 myGui.SetFont("s8 cGray")
 myGui.Add("Text", "w" guiWidth " y+6", "Note: May not work properly if using Overlays such as Blish HUD.")
 myGui.Add("Text", "w" guiWidth " y+4", "v" scriptVersion "  |  Updated: " scriptDate)
@@ -74,7 +78,7 @@ SetTimer(KeepOnTop, 250)
 
 ^!j::
 {
-    global running, cycleCount, targetQty, runStatus
+    global running, userPaused, cycleCount, targetQty, runStatus
     if running
         return
     CoordMode "Mouse", "Screen"
@@ -82,7 +86,7 @@ SetTimer(KeepOnTop, 250)
     ; Both positions must be saved first
     if (pos1X = "" or pos2X = "")
     {
-        statusText.Value := "Status: Save both positions first (Q / W)"
+        SetStatus("Status: Save both positions first (Q / W)")
         return
     }
 
@@ -91,19 +95,20 @@ SetTimer(KeepOnTop, 250)
     targetQty := (qtyText = "") ? 0 : Integer(qtyText)
 
     running := true
+    userPaused := false
     cycleCount := 0
     cycleText.Value := CounterLabel()
     runStatus := "Status: Running"
     if (targetQty = 0)
         runStatus .= " (until stopped)"
-    statusText.Value := runStatus
+    SetStatus(runStatus)
 
     Loop
     {
-        WaitForGame()
+        WaitUntilReady()
         Click(pos1X, pos1Y)
         Sleep 100
-        WaitForGame()
+        WaitUntilReady()
         Click(pos2X, pos2Y)
         Sleep 2500
         cycleCount += 1
@@ -113,7 +118,19 @@ SetTimer(KeepOnTop, 250)
     }
 
     running := false
-    statusText.Value := "Status: Done"
+    userPaused := false
+    SetStatus("Status: Done")
+}
+
+; Pause/Resume. Only does something while a run is in progress.
+; Takes effect before the next click; a click already sent is not undone.
+^!p::
+{
+    global userPaused
+    if !running
+        return
+    userPaused := !userPaused
+    SetStatus(userPaused ? pausedStatus : runStatus)
 }
 
 ^!l::ExitApp
@@ -137,14 +154,32 @@ KeepOnTop()
         DllCall("SetWindowPos", "Ptr", guiHwnd, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x0013)
 }
 
-; Pauses here while the game window is not active, then resumes automatically.
-; Stop/Exit (CTRL+ALT+L) still works while paused.
-WaitForGame()
+; Holds the run here while it is paused (CTRL+ALT+P) or the game window is not
+; active, then resumes once neither is true. Stop/Exit (CTRL+ALT+L) still works while held.
+WaitUntilReady()
 {
-    if WinActive("ahk_exe " gameExe)
-        return
-    statusText.Value := "Status: Paused (waiting for game window)"
-    WinWaitActive("ahk_exe " gameExe)
-    Sleep 500   ; let the game settle before clicking again
-    statusText.Value := runStatus
+    waited := false
+    Loop
+    {
+        if userPaused
+            SetStatus(pausedStatus)
+        else if !WinActive("ahk_exe " gameExe)
+            SetStatus("Status: Paused (waiting for game window)")
+        else
+            break
+        waited := true
+        Sleep 100
+    }
+    if waited
+    {
+        Sleep 500   ; let the game settle before clicking again
+        SetStatus(runStatus)
+    }
+}
+
+; Updates the status line only when the text changes, to avoid flicker.
+SetStatus(text)
+{
+    if (statusText.Value != text)
+        statusText.Value := text
 }
