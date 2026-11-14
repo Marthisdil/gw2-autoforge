@@ -2,6 +2,17 @@
 
 All notable changes to AutoForge are listed here, newest first.
 
+## 3.2.0 - 2026-11-14
+- Hotkeys can now be changed. Click the gear button in the AutoForge window,
+  click a box, press the new key combination and click **Save**. New keys apply
+  right away, and saved mouse positions are kept. The defaults are unchanged.
+- Keybindings are stored in `AutoForge.ini` next to the script, created with the
+  defaults on first launch. The gear window can't record the Win key; to use
+  Win, edit the file by hand and click **Reload file** in the gear window.
+- The window and status messages show your current hotkeys.
+- Invalid or duplicate keybindings fall back to their defaults, with a message
+  listing what was wrong.
+
 ## 3.1.0 - 2026-11-12
 - Added CTRL+ALT+P to pause and resume a run. Pausing holds the run before the
   next click and keeps the cycle count; the status line shows when it is paused.
