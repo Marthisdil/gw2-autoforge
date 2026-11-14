@@ -3,3 +3,5 @@
 # local logs and temp files
 *.log
 *.tmp
+# local settings (created by the script on first run)
+AutoForge.ini
