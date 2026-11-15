@@ -1,6 +1,6 @@
 ; AutoForge
-; Version: 3.2.0  (AutoHotkey v2 version)
-; Date Updated: 2026-11-14
+; Version: 3.3.0  (AutoHotkey v2 version)
+; Date Updated: 2026-11-15
 ;
 ; Requires AutoHotkey v2.0 or later.
 ;
@@ -16,6 +16,8 @@
 ;   (format: Ctrl, Alt, Shift, Win joined with + and ending in a key, e.g. Win+J),
 ;   then click "Reload file" in the gear window. An invalid or duplicate entry falls
 ;   back to its default.
+; Theme: the moon/sun button next to the gear switches between the light and dark
+;   theme. The gear window has the same choice. It is saved in AutoForge.ini.
 ; Quantity box: enter how many to forge, then press Start. The script stops
 ;   after that many cycles. Leave it blank to run until you press Stop/Exit.
 ; Cycle order: Refill > Forge > wait > repeat
@@ -27,8 +29,8 @@
 #Requires AutoHotkey v2.0
 
 ; ---- Version info ----
-scriptVersion := "3.2.0"
-scriptDate := "2026-11-14"
+scriptVersion := "3.3.0"
+scriptDate := "2026-11-15"
 
 ; ---- Game window (instruction window is kept on top while this is active) ----
 gameExe := "Gw2-64.exe"
@@ -52,6 +54,14 @@ actions := [
 keys := Map()   ; id -> display label, e.g. keys["Pause"] = "CTRL+ALT+P"
 settingsGui := ""   ; the keybinding window, while it is open
 
+; ---- Themes (colors are hex RGB, or "Default" for the normal Windows colors) ----
+themes := Map(
+    "Light", {back: "Default", text: "Default", muted: "Gray",   edit: "Default", dark: false},
+    "Dark",  {back: "202020",  text: "E8E8E8",  muted: "9A9A9A", edit: "2D2D2D",  dark: true}
+)
+themeName := "Light"   ; read from AutoForge.ini after it is created
+mutedCtrls := Map()    ; hwnds of the small gray note texts
+
 ; ---- State (every variable must exist before it is read in v2) ----
 pos1X := ""
 pos1Y := ""
@@ -65,24 +75,28 @@ runStatus := "Status: Running"
 pausedStatus := ""
 
 LoadHotkeys()
+themeName := ReadTheme()
 
 ; ---- Instruction window (always on top, top of screen) ----
 guiWidth := 360
 guiX := (A_ScreenWidth - guiWidth) // 2
 myGui := Gui("+AlwaysOnTop +ToolWindow", "AutoForge")
-; Gear button (top right) opens the keybinding window
+; Top right: theme toggle (moon/sun), then the gear button that opens the keybinding window
 myGui.SetFont("s12", "Segoe UI Symbol")
-gearBtn := myGui.Add("Button", "x" (myGui.MarginX + guiWidth - 32) " ym w32 h28", Chr(0x2699))
+themeBtn := myGui.Add("Button", "x" (myGui.MarginX + guiWidth - 68) " ym w32 h28", ThemeButtonText())
+themeBtn.OnEvent("Click", (*) => SetTheme(themeName = "Dark" ? "Light" : "Dark"))
+gearBtn := myGui.Add("Button", "x+4 ym w32 h28", Chr(0x2699))
 gearBtn.OnEvent("Click", OpenSettings)
 myGui.SetFont("s9", "Segoe UI")
-cycleText := myGui.Add("Text", "xm ym w" (guiWidth - 40), "Cycles completed: 0")
-statusText := myGui.Add("Text", "w" (guiWidth - 40) " y+2", "Status: Idle")
+cycleText := myGui.Add("Text", "xm ym w" (guiWidth - 72), "Cycles completed: 0")
+statusText := myGui.Add("Text", "w" (guiWidth - 72) " y+2", "Status: Idle")
 myGui.Add("Text", "xm y+8 Section", "Quantity (blank = until stopped):")
 qtyEdit := myGui.Add("Edit", "x+8 yp-3 w60 Number Limit6")
 helpText := myGui.Add("Text", "xm w" guiWidth " y+8 r" actions.Length, HotkeyHelpText())
 myGui.SetFont("s8 cGray")
-myGui.Add("Text", "xm w" guiWidth " y+6", "Note: May not work properly if using Overlays such as Blish HUD.")
-myGui.Add("Text", "w" guiWidth " y+4", "v" scriptVersion "  |  Updated: " scriptDate)
+Muted(myGui.Add("Text", "xm w" guiWidth " y+6", "Note: May not work properly if using Overlays such as Blish HUD."))
+Muted(myGui.Add("Text", "w" guiWidth " y+4", "v" scriptVersion "  |  Updated: " scriptDate))
+ApplyTheme(myGui)
 myGui.Show("x" guiX " y0 NoActivate")
 guiHwnd := myGui.Hwnd
 
@@ -262,6 +276,9 @@ WriteDefaultIni()
         . "`n[Hotkeys]`n"
     for a in actions
         text .= a.id "=" a.default "`n"
+    text .= "`n[Settings]`n"
+        . "; Theme: Light or Dark (the moon/sun button in the AutoForge window switches it)`n"
+        . "Theme=Light`n"
     FileAppend(text, iniFile)
 }
 
@@ -352,16 +369,22 @@ OpenSettings(*)
         if InStr(a.hk, "#")
         {
             sg.SetFont("s8 cGray")
-            sg.Add("Text", "x" (sg.MarginX + 176) " y+1 w144", "Current: " a.label)
+            Muted(sg.Add("Text", "x" (sg.MarginX + 176) " y+1 w144", "Current: " a.label))
             sg.SetFont("s9 cDefault")
         }
     }
 
     sg.SetFont("s8 cGray")
-    sg.Add("Text", "xm y+12 w320", "Note: these boxes can't record the Windows (Win) key. "
+    Muted(sg.Add("Text", "xm y+12 w320", "Note: these boxes can't record the Windows (Win) key. "
         . "To use Win in a hotkey, click Open AutoForge.ini, edit the line by hand "
-        . "(for example Start=Win+J), save the file, then click Reload file.")
+        . "(for example Start=Win+J), save the file, then click Reload file."))
     sg.SetFont("s9 cDefault")
+
+    ; Theme applies (and is saved) as soon as it is picked, like the moon/sun button
+    sg.Add("Text", "xm y+12 w170", "Theme")
+    themeDdl := sg.Add("DropDownList", "x+6 yp-3 w144 vThemeDdl", ["Light", "Dark"])
+    themeDdl.Choose(themeName)
+    themeDdl.OnEvent("Change", (ctrl, *) => SetTheme(ctrl.Text))
 
     sg.Add("Button", "xm y+10 w78 Default", "Save").OnEvent("Click", (*) => SaveSettings(boxes, changed))
     sg.Add("Button", "x+6 w78", "Cancel").OnEvent("Click", CloseSettings)
@@ -372,6 +395,7 @@ OpenSettings(*)
     sg.OnEvent("Escape", CloseSettings)
 
     settingsGui := sg
+    ApplyTheme(sg)
     sg.Show()
 }
 
@@ -452,6 +476,84 @@ HotkeyHelpText()
     for a in actions
         text .= (text = "" ? "" : "`n") a.label " - " a.desc
     return text
+}
+
+; ---- Theme functions ----
+
+; Reads the theme from AutoForge.ini. Anything other than Dark means Light.
+ReadTheme()
+{
+    return (Trim(IniRead(iniFile, "Settings", "Theme", "Light")) = "Dark") ? "Dark" : "Light"
+}
+
+; Switches to the named theme, saves it, and repaints every open AutoForge window.
+SetTheme(name)
+{
+    global themeName
+    themeName := name
+    IniWrite(name, iniFile, "Settings", "Theme")
+    themeBtn.Text := ThemeButtonText()
+    ApplyTheme(myGui)
+    if (settingsGui != "")
+    {
+        settingsGui["ThemeDdl"].Choose(name)
+        ApplyTheme(settingsGui)
+    }
+}
+
+; The toggle shows the theme it switches to: a moon in light mode, a sun in dark mode.
+ThemeButtonText()
+{
+    return (themeName = "Dark") ? Chr(0x2600) : Chr(0x263E)
+}
+
+; Marks a text control as a small gray note, so the theme gives it the muted color.
+Muted(ctrl)
+{
+    mutedCtrls[ctrl.Hwnd] := true
+    return ctrl
+}
+
+; Colors a window and its controls for the current theme. Text and the quantity box
+; take the theme colors; buttons and drop-downs use Windows' own dark style; the
+; title bar is darkened too (Windows 10 1809 or later). Key boxes stay light.
+ApplyTheme(g)
+{
+    t := themes[themeName]
+    g.BackColor := t.back
+    for hwnd, ctrl in g
+    {
+        switch ctrl.Type
+        {
+            case "Text":
+                ctrl.SetFont("c" (mutedCtrls.Has(hwnd) ? t.muted : t.text))
+            case "Edit":
+                ctrl.Opt("Background" t.edit)
+                ctrl.SetFont("c" t.text)
+            case "Button":
+                SetControlTheme(hwnd, t.dark ? "DarkMode_Explorer" : "")
+            case "DDL":
+                SetControlTheme(hwnd, t.dark ? "DarkMode_CFD" : "")
+        }
+    }
+
+    ; Dark title bar: attribute 20 on current Windows, 19 on early Windows 10 builds
+    on := t.dark ? 1 : 0
+    if DllCall("dwmapi\DwmSetWindowAttribute", "Ptr", g.Hwnd, "Int", 20, "Int*", on, "Int", 4)
+        DllCall("dwmapi\DwmSetWindowAttribute", "Ptr", g.Hwnd, "Int", 19, "Int*", on, "Int", 4)
+
+    ; Repaint the frame and every control (no move, resize, z-order change or activation)
+    DllCall("SetWindowPos", "Ptr", g.Hwnd, "Ptr", 0, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x0037)
+    DllCall("RedrawWindow", "Ptr", g.Hwnd, "Ptr", 0, "Ptr", 0, "UInt", 0x0485)
+}
+
+; Gives a control a Windows visual style by name, or its normal style when name is "".
+SetControlTheme(hwnd, name)
+{
+    if (name = "")
+        DllCall("uxtheme\SetWindowTheme", "Ptr", hwnd, "Ptr", 0, "Ptr", 0)
+    else
+        DllCall("uxtheme\SetWindowTheme", "Ptr", hwnd, "Str", name, "Ptr", 0)
 }
 
 ; ---- Functions ----

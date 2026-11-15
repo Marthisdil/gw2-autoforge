@@ -2,6 +2,11 @@
 
 All notable changes to AutoForge are listed here, newest first.
 
+## 3.3.0 - 2026-11-15
+- Added a dark theme. Click the moon button next to the gear to switch to it,
+  and the sun button to switch back. The gear window also has a **Theme** choice.
+  The theme is saved in `AutoForge.ini` and used the next time AutoForge starts.
+
 ## 3.2.0 - 2026-11-14
 - Hotkeys can now be changed. Click the gear button in the AutoForge window,
   click a box, press the new key combination and click **Save**. New keys apply
