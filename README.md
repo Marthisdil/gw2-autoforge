@@ -73,6 +73,9 @@ SavePos2=Ctrl+Alt+W
 Start=Ctrl+Alt+J
 Pause=Ctrl+Alt+P
 Exit=Ctrl+Alt+L
+
+[Settings]
+Theme=Light
 ```
 
 1. In the gear window, click **Open AutoForge.ini** (or open the file in any text editor).
@@ -97,6 +100,7 @@ that key from reaching Guild Wars 2.
   - `Done`: the quantity you set has been reached.
   - `Save both positions first (Q / W)`: you pressed Start before saving both positions.
 - **Quantity:** How many crafts to run. Blank means run until stopped.
+- **Theme button (☾ / ☀):** Switches between the light and dark theme. The keybinding window has the same choice under **Theme**. Your choice is saved in `AutoForge.ini`.
 - **Gear button (⚙):** Opens the keybinding window.
 - The status messages and hotkey list show your current hotkeys, not just the defaults.
 - The footer shows the script version and the date it was last updated.
