@@ -76,6 +76,7 @@ Exit=Ctrl+Alt+L
 
 [Settings]
 Theme=Light
+TextSize=Medium
 ```
 
 1. In the gear window, click **Open AutoForge.ini** (or open the file in any text editor).
@@ -101,7 +102,7 @@ that key from reaching Guild Wars 2.
   - `Save both positions first (Q / W)`: you pressed Start before saving both positions.
 - **Quantity:** How many crafts to run. Blank means run until stopped.
 - **Theme button (☾ / ☀):** Switches between the light and dark theme. The keybinding window has the same choice under **Theme**. Your choice is saved in `AutoForge.ini`.
-- **Gear button (⚙):** Opens the keybinding window.
+- **Gear button (⚙):** Opens the keybinding window. It also has a **Text size** choice: Small, Medium (the original size), Large or Extra large. Both windows resize to fit right away, and your choice is saved in `AutoForge.ini`.
 - The status messages and hotkey list show your current hotkeys, not just the defaults.
 - The footer shows the script version and the date it was last updated.
 
