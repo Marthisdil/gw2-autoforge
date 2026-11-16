@@ -131,3 +131,8 @@ See [CHANGELOG.md](CHANGELOG.md).
 AutoForge is based on the original
 [GW2MysticForgeMacro](https://github.com/OctavoPE/GW2MysticForgeMacro) by
 [OctavoPE](https://github.com/OctavoPE). Thanks to them for the original script and idea.
+
+## License
+
+AutoForge is released under the [MIT License](LICENSE). You're free to use, change
+and share it, as long as you keep the copyright and license notice.
