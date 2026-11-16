@@ -5,6 +5,14 @@ You save two screen positions, the forge's **Refill** button and its **Forge**
 button, and AutoForge clicks them in a loop. It can run a set number of crafts or
 keep going until you stop it.
 
+## Video tour
+
+A 2-minute silent walkthrough of the AutoForge window and every setting: the
+theme toggle, changing hotkeys, theme and text size. Click the image to play it
+(MP4, 22 MB).
+
+[![AutoForge video tour: click to play](docs/autoforge-tour.png)](https://github.com/Marthisdil/gw2-autoforge/releases/download/v3.4.0/AutoForge-v3.4.0-tour.mp4)
+
 ## Features
 
 - **Two-click cycle:** Refill, then Forge, then a short wait for the forge animation, then repeat.
