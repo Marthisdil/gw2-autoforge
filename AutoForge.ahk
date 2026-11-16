@@ -1,6 +1,11 @@
 ; AutoForge
-; Version: 3.4.0  (AutoHotkey v2 version)
-; Date Updated: 2026-11-15
+; Version: 3.4.1  (AutoHotkey v2 version)
+; Date Updated: 2026-11-16
+;
+; Home page and latest version: https://github.com/Marthisdil/gw2-autoforge
+; License: MIT License. Copyright (c) 2026 Marthisdil.
+;   You may use, change and share this script, as long as you keep this notice.
+;   Full text: https://github.com/Marthisdil/gw2-autoforge/blob/main/LICENSE
 ;
 ; Requires AutoHotkey v2.0 or later.
 ;
@@ -31,8 +36,8 @@
 #Requires AutoHotkey v2.0
 
 ; ---- Version info ----
-scriptVersion := "3.4.0"
-scriptDate := "2026-11-15"
+scriptVersion := "3.4.1"
+scriptDate := "2026-11-16"
 
 ; ---- Game window (instruction window is kept on top while this is active) ----
 gameExe := "Gw2-64.exe"

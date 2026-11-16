@@ -2,6 +2,10 @@
 
 All notable changes to AutoForge are listed here, newest first.
 
+## 3.4.1 - 2026-11-16
+- The script's header comments now give its license (MIT) and a link to the
+  GitHub repository, where you can find the latest version. Nothing else changed.
+
 ## 3.4.0 - 2026-11-15
 - Added a text size choice for easier reading: Small, Medium (the original
   size), Large and Extra large. Pick it under **Text size** in the gear window.
