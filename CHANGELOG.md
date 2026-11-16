@@ -2,6 +2,16 @@
 
 All notable changes to AutoForge are listed here, newest first.
 
+## 3.4.0 - 2026-11-15
+- Added a text size choice for easier reading: Small, Medium (the original
+  size), Large and Extra large. Pick it under **Text size** in the gear window.
+- Both windows resize to fit as soon as you pick a size. Buttons, boxes, spacing
+  and margins grow with the text, and the main window stays centred at the top
+  of the screen.
+- Your quantity, status and any keys you've typed but not saved are kept when
+  the windows resize. The size is saved in `AutoForge.ini`.
+- **Reload file** in the gear window now also reloads the theme and text size.
+
 ## 3.3.0 - 2026-11-15
 - Added a dark theme. Click the moon button next to the gear to switch to it,
   and the sun button to switch back. The gear window also has a **Theme** choice.

@@ -1,5 +1,5 @@
 ; AutoForge
-; Version: 3.3.0  (AutoHotkey v2 version)
+; Version: 3.4.0  (AutoHotkey v2 version)
 ; Date Updated: 2026-11-15
 ;
 ; Requires AutoHotkey v2.0 or later.
@@ -18,6 +18,8 @@
 ;   back to its default.
 ; Theme: the moon/sun button next to the gear switches between the light and dark
 ;   theme. The gear window has the same choice. It is saved in AutoForge.ini.
+; Text size: pick Small, Medium (the original size), Large or Extra large in the gear
+;   window. Both windows resize to fit right away; it is saved in AutoForge.ini.
 ; Quantity box: enter how many to forge, then press Start. The script stops
 ;   after that many cycles. Leave it blank to run until you press Stop/Exit.
 ; Cycle order: Refill > Forge > wait > repeat
@@ -29,7 +31,7 @@
 #Requires AutoHotkey v2.0
 
 ; ---- Version info ----
-scriptVersion := "3.3.0"
+scriptVersion := "3.4.0"
 scriptDate := "2026-11-15"
 
 ; ---- Game window (instruction window is kept on top while this is active) ----
@@ -62,6 +64,21 @@ themes := Map(
 themeName := "Light"   ; read from AutoForge.ini after it is created
 mutedCtrls := Map()    ; hwnds of the small gray note texts
 
+; ---- Text sizes. Medium is the original look; every font size, width, gap and
+;      margin in both windows is multiplied by the chosen scale. ----
+textSizes := [
+    {id: "Small",      name: "Small",       scale: 0.85},
+    {id: "Medium",     name: "Medium",      scale: 1.0},
+    {id: "Large",      name: "Large",       scale: 1.25},
+    {id: "ExtraLarge", name: "Extra large", scale: 1.5}
+]
+textSize := "Medium"   ; read from AutoForge.ini after it is created
+
+myGui := ""            ; the main window, built by BuildMainGui(), and its live controls:
+themeBtn := "", cycleText := "", statusText := "", qtyEdit := "", helpText := ""
+settingsBoxes := ""    ; while the keybinding window is open: id -> key box
+settingsChanged := ""  ;   and the ids the user has typed into
+
 ; ---- State (every variable must exist before it is read in v2) ----
 pos1X := ""
 pos1Y := ""
@@ -76,29 +93,10 @@ pausedStatus := ""
 
 LoadHotkeys()
 themeName := ReadTheme()
+textSize := ReadTextSize()
 
-; ---- Instruction window (always on top, top of screen) ----
-guiWidth := 360
-guiX := (A_ScreenWidth - guiWidth) // 2
-myGui := Gui("+AlwaysOnTop +ToolWindow", "AutoForge")
-; Top right: theme toggle (moon/sun), then the gear button that opens the keybinding window
-myGui.SetFont("s12", "Segoe UI Symbol")
-themeBtn := myGui.Add("Button", "x" (myGui.MarginX + guiWidth - 68) " ym w32 h28", ThemeButtonText())
-themeBtn.OnEvent("Click", (*) => SetTheme(themeName = "Dark" ? "Light" : "Dark"))
-gearBtn := myGui.Add("Button", "x+4 ym w32 h28", Chr(0x2699))
-gearBtn.OnEvent("Click", OpenSettings)
-myGui.SetFont("s9", "Segoe UI")
-cycleText := myGui.Add("Text", "xm ym w" (guiWidth - 72), "Cycles completed: 0")
-statusText := myGui.Add("Text", "w" (guiWidth - 72) " y+2", "Status: Idle")
-myGui.Add("Text", "xm y+8 Section", "Quantity (blank = until stopped):")
-qtyEdit := myGui.Add("Edit", "x+8 yp-3 w60 Number Limit6")
-helpText := myGui.Add("Text", "xm w" guiWidth " y+8 r" actions.Length, HotkeyHelpText())
-myGui.SetFont("s8 cGray")
-Muted(myGui.Add("Text", "xm w" guiWidth " y+6", "Note: May not work properly if using Overlays such as Blish HUD."))
-Muted(myGui.Add("Text", "w" guiWidth " y+4", "v" scriptVersion "  |  Updated: " scriptDate))
-ApplyTheme(myGui)
-myGui.Show("x" guiX " y0 NoActivate")
-guiHwnd := myGui.Hwnd
+; ---- Instruction window (always on top, top centre of the screen) ----
+BuildMainGui()
 
 SetTimer(KeepOnTop, 250)
 
@@ -250,7 +248,7 @@ LoadHotkeys()
 
     ; Show the new keys in the main window (it doesn't exist yet on first load)
     pausedStatus := "Status: Paused (" keys["Pause"] " to resume)"
-    if IsSet(helpText)
+    if (helpText != "")
         helpText.Value := HotkeyHelpText()
 
     if problems.Length
@@ -279,6 +277,8 @@ WriteDefaultIni()
     text .= "`n[Settings]`n"
         . "; Theme: Light or Dark (the moon/sun button in the AutoForge window switches it)`n"
         . "Theme=Light`n"
+        . "; TextSize: Small, Medium, Large or ExtraLarge (also set in the gear window)`n"
+        . "TextSize=Medium`n"
     FileAppend(text, iniFile)
 }
 
@@ -339,7 +339,6 @@ FriendlyHotkey(hk)
 ; open, so pressing a combination types it into the box instead of running the action.
 OpenSettings(*)
 {
-    global settingsGui
     if running
     {
         SetStatus("Status: Wait for the run to finish to change keys")
@@ -350,52 +349,81 @@ OpenSettings(*)
         settingsGui.Show()
         return
     }
+    BuildSettingsGui()
+}
 
+; Builds the keybinding window at the current text size. pending (id -> AHK hotkey) refills
+; keys typed but not saved yet, and pos ({x, y} in pixels) puts the window back where it
+; was; both are used when the window is rebuilt for a new text size.
+BuildSettingsGui(pending := "", pos := "")
+{
+    global settingsGui, settingsBoxes, settingsChanged
     Suspend(true)
     sg := Gui("+AlwaysOnTop +ToolWindow +Owner" myGui.Hwnd, "AutoForge Keybindings")
-    sg.SetFont("s9", "Segoe UI")
-    sg.Add("Text", "w320", "Click a box, then press the key combination you want.`n"
+    sg.MarginX := S(11), sg.MarginY := S(7)
+    sg.SetFont("s" FontSize(9), "Segoe UI")
+    sg.Add("Text", "w" S(320), "Click a box, then press the key combination you want.`n"
         . "Backspace clears a box, which sets it back to its default.")
 
     boxes := Map()     ; id -> Hotkey control
     changed := Map()   ; ids the user typed into
     for a in actions
     {
-        sg.Add("Text", "xm y+10 w170", a.desc)
+        sg.Add("Text", "xm y+" S(10) " w" S(170), a.desc)
         ; A Win binding can't be shown in a Hotkey control; leave the box blank and keep it unless changed
-        box := sg.Add("Hotkey", "x+6 yp-3 w144", InStr(a.hk, "#") ? "" : a.hk)
+        box := sg.Add("Hotkey", "x+" S(6) " yp-" S(3) " w" S(144), InStr(a.hk, "#") ? "" : a.hk)
         box.OnEvent("Change", ((id, *) => changed[id] := true).Bind(a.id))
         boxes[a.id] := box
+        if (pending != "" and pending.Has(a.id))
+        {
+            box.Value := pending[a.id]
+            changed[a.id] := true
+        }
         if InStr(a.hk, "#")
         {
-            sg.SetFont("s8 cGray")
-            Muted(sg.Add("Text", "x" (sg.MarginX + 176) " y+1 w144", "Current: " a.label))
-            sg.SetFont("s9 cDefault")
+            sg.SetFont("s" FontSize(8) " cGray")
+            Muted(sg.Add("Text", "x" (sg.MarginX + S(170) + S(6)) " y+1 w" S(144), "Current: " a.label))
+            sg.SetFont("s" FontSize(9) " cDefault")
         }
     }
 
-    sg.SetFont("s8 cGray")
-    Muted(sg.Add("Text", "xm y+12 w320", "Note: these boxes can't record the Windows (Win) key. "
+    sg.SetFont("s" FontSize(8) " cGray")
+    Muted(sg.Add("Text", "xm y+" S(12) " w" S(320), "Note: these boxes can't record the Windows (Win) key. "
         . "To use Win in a hotkey, click Open AutoForge.ini, edit the line by hand "
         . "(for example Start=Win+J), save the file, then click Reload file."))
-    sg.SetFont("s9 cDefault")
+    sg.SetFont("s" FontSize(9) " cDefault")
 
-    ; Theme applies (and is saved) as soon as it is picked, like the moon/sun button
-    sg.Add("Text", "xm y+12 w170", "Theme")
-    themeDdl := sg.Add("DropDownList", "x+6 yp-3 w144 vThemeDdl", ["Light", "Dark"])
+    ; Theme and text size apply (and are saved) as soon as they are picked, like the moon/sun button
+    sg.Add("Text", "xm y+" S(12) " w" S(170), "Theme")
+    themeDdl := sg.Add("DropDownList", "x+" S(6) " yp-" S(3) " w" S(144) " vThemeDdl", ["Light", "Dark"])
     themeDdl.Choose(themeName)
     themeDdl.OnEvent("Change", (ctrl, *) => SetTheme(ctrl.Text))
 
-    sg.Add("Button", "xm y+10 w78 Default", "Save").OnEvent("Click", (*) => SaveSettings(boxes, changed))
-    sg.Add("Button", "x+6 w78", "Cancel").OnEvent("Click", CloseSettings)
-    sg.Add("Button", "x+6 w150", "Reset to defaults").OnEvent("Click", (*) => ResetSettings(boxes, changed))
-    sg.Add("Button", "xm y+6 w162", "Open AutoForge.ini").OnEvent("Click", (*) => Run('notepad.exe "' iniFile '"'))
-    sg.Add("Button", "x+6 w150", "Reload file").OnEvent("Click", ReloadFromFile)
+    sizeNames := []
+    for t in textSizes
+        sizeNames.Push(t.name)
+    sg.Add("Text", "xm y+" S(10) " w" S(170), "Text size")
+    sizeDdl := sg.Add("DropDownList", "x+" S(6) " yp-" S(3) " w" S(144), sizeNames)
+    sizeDdl.Value := TextSizeIndex()
+    sizeDdl.OnEvent("Change", (ctrl, *) => SetTextSize(textSizes[ctrl.Value].id))
+
+    sg.Add("Button", "xm y+" S(10) " w" S(78) " Default", "Save").OnEvent("Click", (*) => SaveSettings(boxes, changed))
+    sg.Add("Button", "x+" S(6) " w" S(78), "Cancel").OnEvent("Click", CloseSettings)
+    sg.Add("Button", "x+" S(6) " w" S(150), "Reset to defaults").OnEvent("Click", (*) => ResetSettings(boxes, changed))
+    sg.Add("Button", "xm y+" S(6) " w" S(162), "Open AutoForge.ini").OnEvent("Click", (*) => Run('notepad.exe "' iniFile '"'))
+    sg.Add("Button", "x+" S(6) " w" S(150), "Reload file").OnEvent("Click", ReloadFromFile)
     sg.OnEvent("Close", CloseSettings)
     sg.OnEvent("Escape", CloseSettings)
 
     settingsGui := sg
+    settingsBoxes := boxes
+    settingsChanged := changed
     ApplyTheme(sg)
+    if (pos != "")
+    {
+        sg.Show("Hide")
+        WinMove(pos.x, pos.y,,, sg.Hwnd)
+    }
     sg.Show()
 }
 
@@ -452,20 +480,25 @@ SaveSettings(boxes, changed)
     CloseSettings()
 }
 
-; Re-reads AutoForge.ini (after editing it by hand) and reopens the window with its values.
+; Re-reads AutoForge.ini (after editing it by hand) and reopens the window with its values,
+; including the theme and text size.
 ReloadFromFile(*)
 {
     LoadHotkeys()
     CloseSettings()
+    SetTheme(ReadTheme())
+    SetTextSize(ReadTextSize())
     OpenSettings()
 }
 
 CloseSettings(*)
 {
-    global settingsGui
+    global settingsGui, settingsBoxes, settingsChanged
     if (settingsGui != "")
-        settingsGui.Destroy()
+        DestroyGui(settingsGui)
     settingsGui := ""
+    settingsBoxes := ""
+    settingsChanged := ""
     Suspend(false)
 }
 
@@ -476,6 +509,122 @@ HotkeyHelpText()
     for a in actions
         text .= (text = "" ? "" : "`n") a.label " - " a.desc
     return text
+}
+
+; ---- Main window ----
+
+; Builds the instruction window at the current text size and theme. When it is rebuilt
+; for a new text size, the quantity, counter and status are kept, and it stays centred
+; on the same spot at the same height.
+BuildMainGui()
+{
+    global myGui, themeBtn, cycleText, statusText, qtyEdit, helpText
+    Critical("On")   ; keep the KeepOnTop timer out while the window is swapped
+
+    oldQty := "", oldCycle := "Cycles completed: 0", oldStatus := "Status: Idle"
+    centreX := A_ScreenWidth // 2, topY := 0
+    if (myGui != "")
+    {
+        oldQty := qtyEdit.Value, oldCycle := cycleText.Value, oldStatus := statusText.Value
+        WinGetPos(&ox, &oy, &ow,, myGui.Hwnd)
+        centreX := ox + ow // 2, topY := oy
+        DestroyGui(myGui)
+    }
+
+    w := S(360)   ; width of the text area
+    g := Gui("+AlwaysOnTop +ToolWindow", "AutoForge")
+    g.MarginX := S(15), g.MarginY := S(9)   ; AHK's defaults for this window at Medium
+    ; Top right: theme toggle (moon/sun), then the gear button that opens the keybinding window
+    g.SetFont("s" FontSize(12), "Segoe UI Symbol")
+    themeBtn := g.Add("Button", "x" (g.MarginX + w - S(68)) " ym w" S(32) " h" S(28), ThemeButtonText())
+    themeBtn.OnEvent("Click", (*) => SetTheme(themeName = "Dark" ? "Light" : "Dark"))
+    g.Add("Button", "x+" S(4) " ym w" S(32) " h" S(28), Chr(0x2699)).OnEvent("Click", OpenSettings)
+    g.SetFont("s" FontSize(9), "Segoe UI")
+    cycleText := g.Add("Text", "xm ym w" (w - S(72)), oldCycle)
+    statusText := g.Add("Text", "w" (w - S(72)) " y+" S(2), oldStatus)
+    g.Add("Text", "xm y+" S(8) " Section", "Quantity (blank = until stopped):")
+    qtyEdit := g.Add("Edit", "x+" S(8) " yp-" S(3) " w" S(60) " Number Limit6", oldQty)
+    helpText := g.Add("Text", "xm w" w " y+" S(8) " r" actions.Length, HotkeyHelpText())
+    g.SetFont("s" FontSize(8) " cGray")
+    Muted(g.Add("Text", "xm w" w " y+" S(6), "Note: May not work properly if using Overlays such as Blish HUD."))
+    Muted(g.Add("Text", "w" w " y+" S(4), "v" scriptVersion "  |  Updated: " scriptDate))
+    ApplyTheme(g)
+
+    ; Size it hidden, place it, then show it without taking focus from the game
+    g.Show("Hide")
+    WinGetPos(,, &nw,, g.Hwnd)
+    WinMove(centreX - nw // 2, topY,,, g.Hwnd)
+    g.Show("NoActivate")
+    myGui := g
+    Critical("Off")
+}
+
+; Destroys a window and forgets which of its controls were gray notes.
+DestroyGui(g)
+{
+    for hwnd in g
+        if mutedCtrls.Has(hwnd)
+            mutedCtrls.Delete(hwnd)
+    g.Destroy()
+}
+
+; ---- Text size functions ----
+
+; Reads the text size from AutoForge.ini. Anything unknown means Medium.
+ReadTextSize()
+{
+    v := Trim(IniRead(iniFile, "Settings", "TextSize", "Medium"))
+    for t in textSizes
+        if (t.id = v)
+            return t.id
+    return "Medium"
+}
+
+; Position of the current text size in textSizes (for the drop-down).
+TextSizeIndex()
+{
+    for i, t in textSizes
+        if (t.id = textSize)
+            return i
+    return 2
+}
+
+; Scales a Medium-size measurement (width, gap or margin) to the current text size.
+S(n)
+{
+    return Round(n * textSizes[TextSizeIndex()].scale)
+}
+
+; Scales a Medium-size font point size to the current text size (never below 6).
+FontSize(pt)
+{
+    return Max(6, Round(pt * textSizes[TextSizeIndex()].scale))
+}
+
+; Switches to the named text size, saves it, and rebuilds the open windows to fit.
+; The keybinding window keeps its position and any keys typed but not saved yet.
+SetTextSize(id)
+{
+    global textSize, settingsGui, settingsBoxes, settingsChanged
+    IniWrite(id, iniFile, "Settings", "TextSize")
+    if (id = textSize)
+        return
+    textSize := id
+
+    pending := "", pos := ""
+    if (settingsGui != "")
+    {
+        pending := Map()
+        for changedId in settingsChanged
+            pending[changedId] := settingsBoxes[changedId].Value
+        WinGetPos(&sx, &sy,,, settingsGui.Hwnd)
+        pos := {x: sx, y: sy}
+        DestroyGui(settingsGui)   ; hotkeys stay suspended: the window is reopened below
+        settingsGui := "", settingsBoxes := "", settingsChanged := ""
+    }
+    BuildMainGui()
+    if (pos != "")
+        BuildSettingsGui(pending, pos)
 }
 
 ; ---- Theme functions ----
@@ -572,7 +721,7 @@ CounterLabel()
 KeepOnTop()
 {
     if WinActive("ahk_exe " gameExe)
-        DllCall("SetWindowPos", "Ptr", guiHwnd, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x0013)
+        DllCall("SetWindowPos", "Ptr", myGui.Hwnd, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x0013)
 }
 
 ; Holds the run here while it is paused or the game window is not active,
