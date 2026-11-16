@@ -135,4 +135,5 @@ AutoForge is based on the original
 ## License
 
 AutoForge is released under the [MIT License](LICENSE). You're free to use, change
-and share it, as long as you keep the copyright and license notice.
+and share it, as long as you keep the copyright and license notice. This applies to
+all versions of AutoForge, including releases before v3.4.1.
