@@ -11,10 +11,10 @@ A short silent walkthrough of the AutoForge window and every setting: the theme
 toggle, the GitHub link, changing hotkeys, theme, text size and updates (about
 3 minutes). Press play to watch it here.
 
-https://github.com/user-attachments/assets/ada0e743-d183-4894-99d9-0f7d23210b9a
+https://github.com/user-attachments/assets/0511841d-4a38-4569-a788-128a5fad1267
 
-Want a smoother, full-quality copy? [Download the MP4](https://github.com/Marthisdil/gw2-autoforge/releases/download/v3.5.0/AutoForge-v3.5.0-tour.mp4)
-(31 MB) from the v3.5.0 release.
+To watch it offline, [download the MP4](https://github.com/Marthisdil/gw2-autoforge/releases/download/v3.5.0/AutoForge-v3.5.0-tour.mp4)
+(7 MB) from the v3.5.0 release.
 
 ## Features
 
