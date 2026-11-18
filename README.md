@@ -30,7 +30,7 @@ image to play it (MP4, about 3 minutes, 31 MB).
 
 ## Installation
 
-1. Install AutoHotkey v2.
+1. [Install AutoHotkey v2](https://www.autohotkey.com/).
 2. Download `AutoForge.ahk` from the [latest release](https://github.com/Marthisdil/gw2-autoforge/releases/latest).
 3. Double-click `AutoForge.ahk` to start it. The AutoForge window appears at the top of your screen.
 
