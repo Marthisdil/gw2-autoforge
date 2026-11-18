@@ -1,6 +1,6 @@
 ; AutoForge
-; Version: 3.4.1  (AutoHotkey v2 version)
-; Date Updated: 2026-11-16
+; Version: 3.5.0  (AutoHotkey v2 version)
+; Date Updated: 2026-11-17
 ;
 ; Home page and latest version: https://github.com/Marthisdil/gw2-autoforge
 ; License: MIT License. Copyright (c) 2026 Marthisdil.
@@ -25,6 +25,12 @@
 ;   theme. The gear window has the same choice. It is saved in AutoForge.ini.
 ; Text size: pick Small, Medium (the original size), Large or Extra large in the gear
 ;   window. Both windows resize to fit right away; it is saved in AutoForge.ini.
+; Repository link: click the link at the bottom of the AutoForge window to open the
+;   GitHub page in your browser.
+; Updates: in the gear window, set "Check for updates" to At startup (it is Off by
+;   default), or click "Check for updates now". If GitHub has a newer release, you are
+;   asked before anything is downloaded. Installing keeps a copy of the current script
+;   as AutoForge.ahk.bak, replaces AutoForge.ahk and restarts AutoForge.
 ; Quantity box: enter how many to forge, then press Start. The script stops
 ;   after that many cycles. Leave it blank to run until you press Stop/Exit.
 ; Cycle order: Refill > Forge > wait > repeat
@@ -36,8 +42,12 @@
 #Requires AutoHotkey v2.0
 
 ; ---- Version info ----
-scriptVersion := "3.4.1"
-scriptDate := "2026-11-16"
+scriptVersion := "3.5.0"
+scriptDate := "2026-11-17"
+
+; ---- GitHub repository (link in the window, and where updates come from) ----
+repoUrl := "https://github.com/Marthisdil/gw2-autoforge"
+latestReleaseApi := "https://api.github.com/repos/Marthisdil/gw2-autoforge/releases/latest"
 
 ; ---- Game window (instruction window is kept on top while this is active) ----
 gameExe := "Gw2-64.exe"
@@ -63,11 +73,18 @@ settingsGui := ""   ; the keybinding window, while it is open
 
 ; ---- Themes (colors are hex RGB, or "Default" for the normal Windows colors) ----
 themes := Map(
-    "Light", {back: "Default", text: "Default", muted: "Gray",   edit: "Default", dark: false},
-    "Dark",  {back: "202020",  text: "E8E8E8",  muted: "9A9A9A", edit: "2D2D2D",  dark: true}
+    "Light", {back: "Default", text: "Default", muted: "Gray",   link: "0066CC", edit: "Default", dark: false},
+    "Dark",  {back: "202020",  text: "E8E8E8",  muted: "9A9A9A", link: "6CB6FF", edit: "2D2D2D",  dark: true}
 )
 themeName := "Light"   ; read from AutoForge.ini after it is created
 mutedCtrls := Map()    ; hwnds of the small gray note texts
+linkCtrls := Map()     ; hwnds of clickable link texts (link color, hand cursor)
+
+; ---- Update check (Off by default; see the Updates functions near the end) ----
+checkUpdates := "Off"  ; "Off" or "On" (= at startup), read from AutoForge.ini
+updateReq := ""        ; the GitHub request while a check is running
+updateManual := false  ; true when the user clicked "Check for updates now"
+updateStarted := 0
 
 ; ---- Text sizes. Medium is the original look; every font size, width, gap and
 ;      margin in both windows is multiplied by the chosen scale. ----
@@ -99,11 +116,17 @@ pausedStatus := ""
 LoadHotkeys()
 themeName := ReadTheme()
 textSize := ReadTextSize()
+checkUpdates := ReadCheckUpdates()
 
 ; ---- Instruction window (always on top, top centre of the screen) ----
 BuildMainGui()
+OnMessage(0x0020, OnSetCursor)   ; WM_SETCURSOR: hand cursor over links
 
 SetTimer(KeepOnTop, 250)
+
+; Check GitHub for a newer version a few seconds after start, if turned on
+if (checkUpdates = "On")
+    SetTimer(() => CheckForUpdates(false), -3000)
 
 ; ---- Hotkey actions ----
 
@@ -284,6 +307,8 @@ WriteDefaultIni()
         . "Theme=Light`n"
         . "; TextSize: Small, Medium, Large or ExtraLarge (also set in the gear window)`n"
         . "TextSize=Medium`n"
+        . "; CheckForUpdates: Off or On (On = check GitHub for a newer version at startup)`n"
+        . "CheckForUpdates=Off`n"
     FileAppend(text, iniFile)
 }
 
@@ -412,11 +437,17 @@ BuildSettingsGui(pending := "", pos := "")
     sizeDdl.Value := TextSizeIndex()
     sizeDdl.OnEvent("Change", (ctrl, *) => SetTextSize(textSizes[ctrl.Value].id))
 
+    sg.Add("Text", "xm y+" S(10) " w" S(170), "Check for updates")
+    updDdl := sg.Add("DropDownList", "x+" S(6) " yp-" S(3) " w" S(144) " vUpdateDdl", ["Off", "At startup"])
+    updDdl.Value := (checkUpdates = "On") ? 2 : 1
+    updDdl.OnEvent("Change", (ctrl, *) => SetCheckUpdates(ctrl.Value = 2 ? "On" : "Off"))
+
     sg.Add("Button", "xm y+" S(10) " w" S(78) " Default", "Save").OnEvent("Click", (*) => SaveSettings(boxes, changed))
     sg.Add("Button", "x+" S(6) " w" S(78), "Cancel").OnEvent("Click", CloseSettings)
     sg.Add("Button", "x+" S(6) " w" S(150), "Reset to defaults").OnEvent("Click", (*) => ResetSettings(boxes, changed))
     sg.Add("Button", "xm y+" S(6) " w" S(162), "Open AutoForge.ini").OnEvent("Click", (*) => Run('notepad.exe "' iniFile '"'))
     sg.Add("Button", "x+" S(6) " w" S(150), "Reload file").OnEvent("Click", ReloadFromFile)
+    sg.Add("Button", "xm y+" S(6) " w" S(318), "Check for updates now").OnEvent("Click", (*) => CheckForUpdates(true))
     sg.OnEvent("Close", CloseSettings)
     sg.OnEvent("Escape", CloseSettings)
 
@@ -489,10 +520,12 @@ SaveSettings(boxes, changed)
 ; including the theme and text size.
 ReloadFromFile(*)
 {
+    global checkUpdates
     LoadHotkeys()
     CloseSettings()
     SetTheme(ReadTheme())
     SetTextSize(ReadTextSize())
+    checkUpdates := ReadCheckUpdates()
     OpenSettings()
 }
 
@@ -553,6 +586,10 @@ BuildMainGui()
     g.SetFont("s" FontSize(8) " cGray")
     Muted(g.Add("Text", "xm w" w " y+" S(6), "Note: May not work properly if using Overlays such as Blish HUD."))
     Muted(g.Add("Text", "w" w " y+" S(4), "v" scriptVersion "  |  Updated: " scriptDate))
+    ; Clickable repository link (sized to its text, so only the text is clickable)
+    g.SetFont("underline")
+    Link(g.Add("Text", "xm y+" S(4), repoUrl)).OnEvent("Click", (*) => Run(repoUrl))
+    g.SetFont("norm")
     ApplyTheme(g)
 
     ; Size it hidden, place it, then show it without taking focus from the game
@@ -564,13 +601,34 @@ BuildMainGui()
     Critical("Off")
 }
 
-; Destroys a window and forgets which of its controls were gray notes.
+; Destroys a window and forgets which of its controls were gray notes or links.
 DestroyGui(g)
 {
     for hwnd in g
+    {
         if mutedCtrls.Has(hwnd)
             mutedCtrls.Delete(hwnd)
+        if linkCtrls.Has(hwnd)
+            linkCtrls.Delete(hwnd)
+    }
     g.Destroy()
+}
+
+; Marks a text control as a clickable link: link color and a hand cursor.
+Link(ctrl)
+{
+    linkCtrls[ctrl.Hwnd] := true
+    return ctrl
+}
+
+; Shows the hand cursor while the mouse is over a link.
+OnSetCursor(wParam, lParam, msg, hwnd)
+{
+    if linkCtrls.Has(wParam)
+    {
+        DllCall("SetCursor", "Ptr", DllCall("LoadCursor", "Ptr", 0, "Ptr", 32649, "Ptr"))   ; IDC_HAND
+        return true
+    }
 }
 
 ; ---- Text size functions ----
@@ -632,6 +690,243 @@ SetTextSize(id)
         BuildSettingsGui(pending, pos)
 }
 
+; ---- Updates ----
+; The check asks GitHub for the latest release in the background (the window never
+; freezes). Nothing is downloaded unless the user says Yes. Installing downloads the
+; release's AutoForge.ahk, checks it, keeps the current script as AutoForge.ahk.bak,
+; swaps the new file in and restarts.
+
+; Reads the update setting from AutoForge.ini. Anything other than On means Off.
+ReadCheckUpdates()
+{
+    return (Trim(IniRead(iniFile, "Settings", "CheckForUpdates", "Off")) = "On") ? "On" : "Off"
+}
+
+; Saves the update setting (from the gear window's drop-down).
+SetCheckUpdates(value)
+{
+    global checkUpdates
+    checkUpdates := value
+    IniWrite(value, iniFile, "Settings", "CheckForUpdates")
+}
+
+; Starts a check. manual = true when the user clicked "Check for updates now":
+; then every result is reported. A startup check only speaks up when there is an update.
+CheckForUpdates(manual)
+{
+    global updateReq, updateManual, updateStarted
+    if (updateReq != "")   ; a check is already running
+        return
+    if A_IsCompiled
+    {
+        if manual
+            UpdateMsg("Updates only work for the AutoForge.ahk script, not a compiled .exe.", "Icon!")
+        return
+    }
+    try
+    {
+        req := ComObject("WinHttp.WinHttpRequest.5.1")
+        req.Open("GET", latestReleaseApi, true)   ; true = don't wait here
+        req.SetRequestHeader("User-Agent", "AutoForge-update-check")
+        req.SetRequestHeader("Accept", "application/vnd.github+json")
+        req.Send()
+    }
+    catch as err
+    {
+        if manual
+            UpdateMsg("Couldn't check for updates.`n`n" err.Message, "Icon!")
+        return
+    }
+    updateReq := req, updateManual := manual, updateStarted := A_TickCount
+    if manual
+        SetStatus("Status: Checking for updates...")
+    SetTimer(PollUpdateCheck, 200)
+}
+
+; Waits for GitHub's answer without blocking, then acts on it.
+PollUpdateCheck()
+{
+    global updateReq
+    req := updateReq
+    state := "waiting"
+    try
+    {
+        if req.WaitForResponse(0)   ; COM true (-1) once the answer has arrived
+            state := "done"
+    }
+    catch
+        state := "error"
+    if (state = "waiting")
+    {
+        if (A_TickCount - updateStarted < 15000)
+            return
+        try req.Abort()
+        state := "timeout"
+    }
+    SetTimer(PollUpdateCheck, 0)
+    updateReq := ""
+    manual := updateManual
+    if manual and !running
+        SetStatus("Status: Idle")
+
+    if (state != "done")
+    {
+        if manual
+            UpdateMsg("Couldn't reach GitHub to check for updates"
+                . (state = "timeout" ? " (no answer after 15 seconds)" : "") ". Check your internet connection and try again.", "Icon!")
+        return
+    }
+    status := 0, body := ""
+    try status := req.Status, body := req.ResponseText
+    if (status != 200 or !RegExMatch(body, '"tag_name"\s*:\s*"v?(\d+(?:\.\d+)*)"', &tag))
+    {
+        if manual
+            UpdateMsg("Couldn't check for updates (GitHub answered " status ").", "Icon!")
+        return
+    }
+
+    latest := tag[1]
+    if (CompareVersions(latest, scriptVersion) <= 0)
+    {
+        if manual
+            UpdateMsg("You have the latest version of AutoForge (v" scriptVersion ").", "Iconi")
+        return
+    }
+    if !RegExMatch(body, '"browser_download_url"\s*:\s*"([^"]+/AutoForge\.ahk)"', &asset)
+    {
+        if manual
+            UpdateMsg("AutoForge v" latest " is out, but its release has no AutoForge.ahk attached. "
+                . "You can get it from " repoUrl "/releases", "Icon!")
+        return
+    }
+    notes := ""
+    if RegExMatch(body, 's)"body"\s*:\s*"((?:[^"\\]|\\.)*)"', &b)
+        notes := CleanNotes(JsonUnescape(b[1]))
+    if running and !manual
+        return   ; don't interrupt a run with a question; the next startup will ask again
+    ShowUpdatePrompt({version: latest, notes: notes, url: asset[1]})
+}
+
+; Asks whether to install a newer version, and installs it on Yes.
+ShowUpdatePrompt(info)
+{
+    text := "AutoForge v" info.version " is available. You have v" scriptVersion ".`n`n"
+    if (info.notes != "")
+        text .= "What's new:`n" info.notes "`n`n"
+    text .= "Download and install it now? AutoForge will restart with the new version. "
+        . "Your settings are kept, but you'll need to save your two mouse positions again."
+    if (UpdateMsg(text, "YesNo Iconi") = "Yes")
+        InstallUpdate(info)
+}
+
+; Downloads the new script, checks it, keeps a backup of this one, swaps it in and restarts.
+InstallUpdate(info)
+{
+    if running
+    {
+        UpdateMsg("Stop the run before updating.", "Icon!")
+        return
+    }
+    newFile := A_ScriptFullPath ".new"
+    bakFile := A_ScriptFullPath ".bak"
+    SetStatus("Status: Downloading v" info.version "...")
+    try
+    {
+        try FileDelete(newFile)
+        Download(info.url, newFile)
+    }
+    catch as err
+    {
+        SetStatus("Status: Idle")
+        UpdateMsg("The download failed, so nothing was changed.`n`n" err.Message, "Icon!")
+        return
+    }
+
+    ; Make sure it really is an AutoForge script of the expected version, and that it loads
+    ok := false
+    try
+    {
+        code := FileRead(newFile, "UTF-8")
+        ok := InStr(code, "#Requires AutoHotkey v2")
+            and InStr(code, 'scriptVersion := "' info.version '"')
+            and RunWait('"' A_AhkPath '" /ErrorStdOut /validate "' newFile '"',, "Hide") = 0
+    }
+    if !ok
+    {
+        try FileDelete(newFile)
+        SetStatus("Status: Idle")
+        UpdateMsg("The downloaded file didn't pass AutoForge's checks, so nothing was changed. "
+            . "You can download v" info.version " by hand from " repoUrl "/releases", "Icon!")
+        return
+    }
+
+    try
+    {
+        FileCopy(A_ScriptFullPath, bakFile, true)
+        FileMove(newFile, A_ScriptFullPath, true)
+    }
+    catch as err
+    {
+        try FileDelete(newFile)
+        SetStatus("Status: Idle")
+        UpdateMsg("Couldn't replace AutoForge.ahk (is the folder read-only?), so nothing was changed.`n`n" err.Message, "Icon!")
+        return
+    }
+    Reload()
+}
+
+; A message box on top of the open AutoForge window (the gear window if it's open).
+UpdateMsg(text, options)
+{
+    owner := (settingsGui != "") ? settingsGui.Hwnd : myGui.Hwnd
+    return MsgBox(text, "AutoForge updates", options " 0x40000 Owner" owner)
+}
+
+; Compares version strings such as "3.10.0" and "3.9.2". Returns 1, 0 or -1.
+CompareVersions(a, b)
+{
+    pa := StrSplit(a, "."), pb := StrSplit(b, ".")
+    Loop Max(pa.Length, pb.Length)
+    {
+        x := (A_Index <= pa.Length) ? Integer(pa[A_Index]) : 0
+        y := (A_Index <= pb.Length) ? Integer(pb[A_Index]) : 0
+        if (x != y)
+            return (x > y) ? 1 : -1
+    }
+    return 0
+}
+
+; Turns a JSON string value back into plain text.
+JsonUnescape(s)
+{
+    s := StrReplace(s, "\\", Chr(1))
+    s := StrReplace(s, "\n", "`n"), s := StrReplace(s, "\r", ""), s := StrReplace(s, "\t", "`t")
+    s := StrReplace(s, '\"', '"'), s := StrReplace(s, "\/", "/")
+    while RegExMatch(s, "\\u([0-9a-fA-F]{4})", &m)
+        s := StrReplace(s, m[0], Chr(Integer("0x" m[1])))
+    return StrReplace(s, Chr(1), "\")
+}
+
+; Release notes for the update question: no Markdown marks, links shown as their text,
+; at most 12 lines.
+CleanNotes(s)
+{
+    s := RegExReplace(s, "\[([^\]]*)\]\([^)]*\)", "$1")
+    s := StrReplace(s, "**", ""), s := StrReplace(s, "``", "")
+    ; join wrapped lines (an indented line that doesn't start a new bullet) back up
+    s := RegExReplace(s, "\n[ \t]+(?![-*])", " ")
+    s := RegExReplace(Trim(s, " `t`n"), "\n{3,}", "`n`n")
+    lines := StrSplit(s, "`n")
+    if (lines.Length > 12)
+    {
+        s := ""
+        Loop 12
+            s .= lines[A_Index] "`n"
+        s .= "..."
+    }
+    return s
+}
+
 ; ---- Theme functions ----
 
 ; Reads the theme from AutoForge.ini. Anything other than Dark means Light.
@@ -680,7 +975,7 @@ ApplyTheme(g)
         switch ctrl.Type
         {
             case "Text":
-                ctrl.SetFont("c" (mutedCtrls.Has(hwnd) ? t.muted : t.text))
+                ctrl.SetFont("c" (linkCtrls.Has(hwnd) ? t.link : mutedCtrls.Has(hwnd) ? t.muted : t.text))
             case "Edit":
                 ctrl.Opt("Background" t.edit)
                 ctrl.SetFont("c" t.text)

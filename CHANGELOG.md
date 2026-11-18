@@ -2,6 +2,19 @@
 
 All notable changes to AutoForge are listed here, newest first.
 
+## 3.5.0 - 2026-11-17
+- Added a link to the GitHub page at the bottom of the AutoForge window. Click
+  it to open the page in your browser.
+- AutoForge can now update itself. In the gear window, set **Check for updates**
+  to **At startup** (it's **Off** by default), or click **Check for updates
+  now** at any time.
+- When a newer release is out, AutoForge shows what's new and asks before
+  downloading anything. If you say yes, it checks the download, keeps your
+  current script as `AutoForge.ahk.bak`, installs the new version and restarts.
+  Your settings are kept; save your two mouse positions again after it restarts.
+- The update setting is saved in `AutoForge.ini` as `CheckForUpdates`.
+- **Reload file** in the gear window now also reloads the update setting.
+
 ## 3.4.1 - 2026-11-16
 - The script's header comments now give its license (MIT) and a link to the
   GitHub repository, where you can find the latest version. Nothing else changed.

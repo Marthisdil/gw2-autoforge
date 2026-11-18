@@ -5,3 +5,6 @@
 *.tmp
 # local settings (created by the script on first run)
 AutoForge.ini
+# backup and download made by the in-script updater
+*.bak
+*.new
