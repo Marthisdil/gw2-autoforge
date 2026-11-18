@@ -7,11 +7,11 @@ keep going until you stop it.
 
 ## Video tour
 
-A 2-minute silent walkthrough of the AutoForge window and every setting: the
-theme toggle, changing hotkeys, theme and text size. Click the image to play it
-(MP4, 22 MB).
+A short silent walkthrough of the AutoForge window and every setting: the theme
+toggle, the GitHub link, changing hotkeys, theme, text size and updates. Click the
+image to play it (MP4, about 3 minutes, 31 MB).
 
-[![AutoForge video tour: click to play](docs/autoforge-tour.png)](https://github.com/Marthisdil/gw2-autoforge/releases/download/v3.4.0/AutoForge-v3.4.0-tour.mp4)
+[![AutoForge video tour: click to play](docs/autoforge-tour.png)](https://github.com/Marthisdil/gw2-autoforge/releases/download/v3.5.0/AutoForge-v3.5.0-tour.mp4)
 
 ## Features
 
@@ -20,6 +20,8 @@ theme toggle, changing hotkeys, theme and text size. Click the image to play it
 - **Pause and resume:** Hold the run with a hotkey without losing your cycle count.
 - **Automatic pause:** The run holds when you switch away from the game and picks up again when you switch back.
 - **Status window:** A small window at the top of the screen shows the cycle count, the current status, and the controls. It stays on top of the game without taking focus.
+- **Easy on the eyes:** Light or dark theme, and four text sizes.
+- **Updates:** Optionally checks GitHub for a newer version and installs it for you, after asking.
 
 ## Requirements
 
@@ -29,8 +31,10 @@ theme toggle, changing hotkeys, theme and text size. Click the image to play it
 ## Installation
 
 1. Install AutoHotkey v2.
-2. Download [`AutoForge.ahk`](AutoForge.ahk) from this repository.
+2. Download `AutoForge.ahk` from the [latest release](https://github.com/Marthisdil/gw2-autoforge/releases/latest).
 3. Double-click `AutoForge.ahk` to start it. The AutoForge window appears at the top of your screen.
+
+After that, AutoForge can keep itself up to date. See [Updating AutoForge](#updating-autoforge).
 
 ## How to use it
 
@@ -85,6 +89,7 @@ Exit=Ctrl+Alt+L
 [Settings]
 Theme=Light
 TextSize=Medium
+CheckForUpdates=Off
 ```
 
 1. In the gear window, click **Open AutoForge.ini** (or open the file in any text editor).
@@ -98,6 +103,35 @@ the defaults, delete a line or the whole file.
 Avoid keys you use in the game. A hotkey with no modifier, such as `F9`, stops
 that key from reaching Guild Wars 2.
 
+## Updating AutoForge
+
+AutoForge can check this repository's [releases](https://github.com/Marthisdil/gw2-autoforge/releases)
+for a newer version and install it for you. This works from v3.5.0 on. For older
+versions, download the new `AutoForge.ahk` by hand once.
+
+- **Automatic check (off by default):** In the gear window, set **Check for updates**
+  to **At startup**. AutoForge then checks a few seconds after it starts, and only
+  speaks up if there's a newer version.
+- **Check now:** Click **Check for updates now** in the gear window at any time. It
+  tells you if you're already up to date, or if GitHub couldn't be reached.
+
+When a newer version is available, AutoForge shows what's new and asks before it
+downloads anything. If you click **Yes**, it:
+
+1. Downloads the new `AutoForge.ahk` from the release.
+2. Checks it: it must be the version it says, and AutoHotkey must be able to load it.
+   If not, nothing is changed.
+3. Keeps your current script as `AutoForge.ahk.bak` in the same folder.
+4. Replaces `AutoForge.ahk` and restarts AutoForge.
+
+Your settings in `AutoForge.ini` are kept. Saved mouse positions aren't, so save
+both positions again after an update. To go back to the old version, close
+AutoForge, delete `AutoForge.ahk` and rename `AutoForge.ahk.bak` to `AutoForge.ahk`.
+
+AutoForge needs to be able to write to its own folder to update itself. The check
+only contacts GitHub (`api.github.com`), and doesn't send anything about you or
+your settings.
+
 ## The AutoForge window
 
 - **Cycles completed:** How many crafts have run, for example `3 / 10` when you set a quantity.
@@ -110,9 +144,9 @@ that key from reaching Guild Wars 2.
   - `Save both positions first (Q / W)`: you pressed Start before saving both positions.
 - **Quantity:** How many crafts to run. Blank means run until stopped.
 - **Theme button (☾ / ☀):** Switches between the light and dark theme. The keybinding window has the same choice under **Theme**. Your choice is saved in `AutoForge.ini`.
-- **Gear button (⚙):** Opens the keybinding window. It also has a **Text size** choice: Small, Medium (the original size), Large or Extra large. Both windows resize to fit right away, and your choice is saved in `AutoForge.ini`.
+- **Gear button (⚙):** Opens the keybinding window. It also has a **Text size** choice: Small, Medium (the original size), Large or Extra large. Both windows resize to fit right away, and your choice is saved in `AutoForge.ini`. Its update options are described in [Updating AutoForge](#updating-autoforge).
 - The status messages and hotkey list show your current hotkeys, not just the defaults.
-- The footer shows the script version and the date it was last updated.
+- The footer shows the script version, the date it was last updated, and a link to this GitHub page. Click the link to open it in your browser.
 
 ## Notes
 
