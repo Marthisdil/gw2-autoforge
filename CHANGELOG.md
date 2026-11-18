@@ -2,6 +2,15 @@
 
 All notable changes to AutoForge are listed here, newest first.
 
+## 3.5.1 - 2026-11-18
+- Added an **ArenaNet Macro Policy** link at the bottom of the gear window. It
+  shows the policy's address and asks first. Click **OK** to open it in a new
+  tab in your default browser, or **Cancel** to close the prompt without opening
+  anything.
+- The README now has a disclaimer about ArenaNet's macro policy. AutoForge is an
+  auto-clicker for convenience, which the policy permits, as long as you stay
+  at the keyboard while it runs.
+
 ## 3.5.0 - 2026-11-17
 - Added a link to the GitHub page at the bottom of the AutoForge window. Click
   it to open the page in your browser.

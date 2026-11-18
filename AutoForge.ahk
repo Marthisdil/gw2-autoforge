@@ -1,6 +1,6 @@
 ; AutoForge
-; Version: 3.5.0  (AutoHotkey v2 version)
-; Date Updated: 2026-11-17
+; Version: 3.5.1  (AutoHotkey v2 version)
+; Date Updated: 2026-11-18
 ;
 ; Home page and latest version: https://github.com/Marthisdil/gw2-autoforge
 ; License: MIT License. Copyright (c) 2026 Marthisdil.
@@ -31,6 +31,10 @@
 ;   default), or click "Check for updates now". If GitHub has a newer release, you are
 ;   asked before anything is downloaded. Installing keeps a copy of the current script
 ;   as AutoForge.ahk.bak, replaces AutoForge.ahk and restarts AutoForge.
+; Macro policy: the "ArenaNet Macro Policy" link at the bottom of the gear window asks
+;   first, then opens ArenaNet's official macro policy in your default browser.
+;   AutoForge is an attended auto-clicker for convenience, which that policy permits:
+;   "You may create an auto-clicker that opens or consumes a stack of items."
 ; Quantity box: enter how many to forge, then press Start. The script stops
 ;   after that many cycles. Leave it blank to run until you press Stop/Exit.
 ; Cycle order: Refill > Forge > wait > repeat
@@ -42,12 +46,14 @@
 #Requires AutoHotkey v2.0
 
 ; ---- Version info ----
-scriptVersion := "3.5.0"
-scriptDate := "2026-11-17"
+scriptVersion := "3.5.1"
+scriptDate := "2026-11-18"
 
 ; ---- GitHub repository (link in the window, and where updates come from) ----
 repoUrl := "https://github.com/Marthisdil/gw2-autoforge"
 latestReleaseApi := "https://api.github.com/repos/Marthisdil/gw2-autoforge/releases/latest"
+; ArenaNet's official macro policy (link at the bottom of the gear window)
+macroPolicyUrl := "https://help.guildwars2.com/hc/en-us/articles/360013762153-Policy-Macros-and-Macro-Use"
 
 ; ---- Game window (instruction window is kept on top while this is active) ----
 gameExe := "Gw2-64.exe"
@@ -448,6 +454,10 @@ BuildSettingsGui(pending := "", pos := "")
     sg.Add("Button", "xm y+" S(6) " w" S(162), "Open AutoForge.ini").OnEvent("Click", (*) => Run('notepad.exe "' iniFile '"'))
     sg.Add("Button", "x+" S(6) " w" S(150), "Reload file").OnEvent("Click", ReloadFromFile)
     sg.Add("Button", "xm y+" S(6) " w" S(318), "Check for updates now").OnEvent("Click", (*) => CheckForUpdates(true))
+    ; Link to ArenaNet's macro policy (asks before opening the browser)
+    sg.SetFont("underline")
+    Link(sg.Add("Text", "xm y+" S(10), "ArenaNet Macro Policy")).OnEvent("Click", OpenMacroPolicy)
+    sg.SetFont("norm")
     sg.OnEvent("Close", CloseSettings)
     sg.OnEvent("Escape", CloseSettings)
 
@@ -461,6 +471,16 @@ BuildSettingsGui(pending := "", pos := "")
         WinMove(pos.x, pos.y,,, sg.Hwnd)
     }
     sg.Show()
+}
+
+; Asks before opening ArenaNet's macro policy in a new tab of the default browser.
+OpenMacroPolicy(*)
+{
+    answer := MsgBox("AutoForge wants to open this link in a new tab in your default browser:`n`n"
+        . macroPolicyUrl "`n`nClick OK to open it, or Cancel to stay here.",
+        "Open link?", "OKCancel Iconi 0x40000")
+    if (answer = "OK")
+        Run(macroPolicyUrl)
 }
 
 ; Fills every box with its default (saved only when the user clicks Save).
