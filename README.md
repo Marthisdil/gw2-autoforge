@@ -26,6 +26,24 @@ To watch it offline, [download the MP4](https://github.com/Marthisdil/gw2-autofo
 - **Easy on the eyes:** Light or dark theme, and four text sizes.
 - **Updates:** Optionally checks GitHub for a newer version and installs it for you, after asking.
 
+## Disclaimer: ArenaNet's macro policy
+
+AutoForge is an **auto-clicker for convenience**. It repeats the two clicks you would
+otherwise make by hand at the Mystic Forge, using up a stack of crafting materials,
+while you are at the keyboard. ArenaNet's official
+[Policy: Macros and Macro Use](https://help.guildwars2.com/hc/en-us/articles/360013762153-Policy-Macros-and-Macro-Use)
+lists this kind of macro as permitted:
+
+> "You may create an auto-clicker that opens or consumes a stack of items."
+
+The same policy says macro use must be **attended**: unattended macro use is
+prohibited, and so is using macros to farm while away from the keyboard. Stay at
+your computer while AutoForge runs. It pauses on its own when you switch away from
+the game, but that doesn't make AFK use allowed. ArenaNet decides how its policy
+applies and can change it, so read the current version yourself. The gear window
+has an **ArenaNet Macro Policy** link that opens it. AutoForge is not made or
+endorsed by ArenaNet, and you use it at your own risk.
+
 ## Requirements
 
 - Windows with [AutoHotkey v2.0](https://www.autohotkey.com/) or later
@@ -147,7 +165,7 @@ your settings.
   - `Save both positions first (Q / W)`: you pressed Start before saving both positions.
 - **Quantity:** How many crafts to run. Blank means run until stopped.
 - **Theme button (☾ / ☀):** Switches between the light and dark theme. The keybinding window has the same choice under **Theme**. Your choice is saved in `AutoForge.ini`.
-- **Gear button (⚙):** Opens the keybinding window. It also has a **Text size** choice: Small, Medium (the original size), Large or Extra large. Both windows resize to fit right away, and your choice is saved in `AutoForge.ini`. Its update options are described in [Updating AutoForge](#updating-autoforge).
+- **Gear button (⚙):** Opens the keybinding window. It also has a **Text size** choice: Small, Medium (the original size), Large or Extra large. Both windows resize to fit right away, and your choice is saved in `AutoForge.ini`. Its update options are described in [Updating AutoForge](#updating-autoforge). The **ArenaNet Macro Policy** link at the bottom asks first, then opens ArenaNet's macro policy in a new tab in your default browser. Click **OK** to open it, or **Cancel** to close the prompt without opening anything.
 - The status messages and hotkey list show your current hotkeys, not just the defaults.
 - The footer shows the script version, the date it was last updated, and a link to this GitHub page. Click the link to open it in your browser.
 
@@ -157,7 +175,7 @@ your settings.
 - **Game window:** AutoForge only clicks while Guild Wars 2 is the active window. When you switch back, it waits half a second before clicking again so the game can settle.
 - **Overlays:** It may not work properly with overlays such as Blish HUD.
 - **Hotkeys:** The default hotkeys use Ctrl+Alt so they don't clash with common game keybinds.
-- **Use at your own risk:** Check ArenaNet's rules on macros before you use any automation in the game.
+- **Use at your own risk:** Stay at the keyboard while it runs, and see the [macro policy disclaimer](#disclaimer-arenanets-macro-policy).
 
 ## Changelog
 
